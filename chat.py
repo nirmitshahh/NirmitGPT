@@ -16,7 +16,7 @@ def generate(model, tokenizer, prompt, max_new_tokens=100, temperature=0.8):
         tokens.append(next_token.item())
         x = torch.cat([x, next_token.unsqueeze(0).unsqueeze(0)], dim=1)
         
-        if next_token.item() == tokenizer.enc.eot_token:
+        if len(tokens) >= max_new_tokens:
             break
     
     return tokenizer.decode(tokens)

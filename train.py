@@ -39,8 +39,13 @@ def main():
     
     model = ChatModel(vocab_size=vocab_size).to(device)
     
-    # dummy data for now
-    texts = ["Hello, how are you?", "I'm doing well, thanks!"]
+    # load data from file if exists, otherwise use dummy
+    try:
+        with open("data.txt", "r") as f:
+            texts = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        texts = ["Hello, how are you?", "I'm doing well, thanks!"]
+    
     dataloader = get_dataloader(texts, tokenizer, batch_size=2)
     
     optimizer = AdamW(model.parameters(), lr=3e-4)

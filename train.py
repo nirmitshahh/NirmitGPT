@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from model import ChatModel
 from tokenizer import Tokenizer
 from data import get_dataloader
 import os
 
-def train(model, dataloader, optimizer, device, epochs=10, save_every=5):
+def train(model, dataloader, optimizer, scheduler, device, epochs=10, save_every=5):
     model.train()
     for epoch in range(epochs):
         total_loss = 0
@@ -26,6 +27,9 @@ def train(model, dataloader, optimizer, device, epochs=10, save_every=5):
         
         avg_loss = total_loss / len(dataloader)
         print(f"Epoch {epoch} avg loss: {avg_loss:.4f}")
+        
+        if scheduler:
+            scheduler.step()
         
         if (epoch + 1) % save_every == 0:
             torch.save(model.state_dict(), f"checkpoints/model_epoch_{epoch+1}.pt")
@@ -49,8 +53,9 @@ def main():
     dataloader = get_dataloader(texts, tokenizer, batch_size=2)
     
     optimizer = AdamW(model.parameters(), lr=3e-4)
+    scheduler = CosineAnnealingLR(optimizer, T_max=5)
     
-    train(model, dataloader, optimizer, device, epochs=5)
+    train(model, dataloader, optimizer, scheduler, device, epochs=5)
     
     os.makedirs("checkpoints", exist_ok=True)
     torch.save(model.state_dict(), "checkpoints/model.pt")

@@ -6,7 +6,7 @@ from tokenizer import Tokenizer
 from data import get_dataloader
 import os
 
-def train(model, dataloader, optimizer, device, epochs=10):
+def train(model, dataloader, optimizer, device, epochs=10, save_every=5):
     model.train()
     for epoch in range(epochs):
         total_loss = 0
@@ -16,6 +16,7 @@ def train(model, dataloader, optimizer, device, epochs=10):
             optimizer.zero_grad()
             logits, loss = model(x, y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             
             total_loss += loss.item()
@@ -23,7 +24,11 @@ def train(model, dataloader, optimizer, device, epochs=10):
             if batch_idx % 100 == 0:
                 print(f"Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}")
         
-        print(f"Epoch {epoch} avg loss: {total_loss / len(dataloader):.4f}")
+        avg_loss = total_loss / len(dataloader)
+        print(f"Epoch {epoch} avg loss: {avg_loss:.4f}")
+        
+        if (epoch + 1) % save_every == 0:
+            torch.save(model.state_dict(), f"checkpoints/model_epoch_{epoch+1}.pt")
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

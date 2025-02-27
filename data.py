@@ -35,8 +35,12 @@ def collate_fn(batch):
     y_padded = []
     for x, y in zip(xs, ys):
         pad_len = max_len - len(x)
-        x_padded.append(torch.cat([x, torch.zeros(pad_len, dtype=torch.long)]))
-        y_padded.append(torch.cat([y, torch.full((pad_len,), -1, dtype=torch.long)]))
+        if pad_len > 0:
+            x_padded.append(torch.cat([x, torch.zeros(pad_len, dtype=torch.long)]))
+            y_padded.append(torch.cat([y, torch.full((pad_len,), -1, dtype=torch.long)]))
+        else:
+            x_padded.append(x)
+            y_padded.append(y)
     
     return torch.stack(x_padded), torch.stack(y_padded)
 

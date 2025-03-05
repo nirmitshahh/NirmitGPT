@@ -2,23 +2,34 @@ import torch
 import torch.nn as nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.cuda.amp import autocast, GradScaler
 from model import ChatModel
 from tokenizer import Tokenizer
 from data import get_dataloader
 import os
 
-def train(model, dataloader, optimizer, scheduler, device, epochs=10, save_every=5):
+def train(model, dataloader, optimizer, scheduler, device, epochs=10, save_every=5, use_amp=False):
     model.train()
+    scaler = GradScaler() if use_amp else None
     for epoch in range(epochs):
         total_loss = 0
         for batch_idx, (x, y) in enumerate(dataloader):
             x, y = x.to(device), y.to(device)
             
             optimizer.zero_grad()
-            logits, loss = model(x, y)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
+            if use_amp:
+                with autocast():
+                    logits, loss = model(x, y)
+                scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                logits, loss = model(x, y)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                optimizer.step()
             
             total_loss += loss.item()
             
@@ -55,7 +66,7 @@ def main():
     optimizer = AdamW(model.parameters(), lr=3e-4)
     scheduler = CosineAnnealingLR(optimizer, T_max=5)
     
-    train(model, dataloader, optimizer, scheduler, device, epochs=5)
+    train(model, dataloader, optimizer, scheduler, device, epochs=5, use_amp=True)
     
     os.makedirs("checkpoints", exist_ok=True)
     torch.save(model.state_dict(), "checkpoints/model.pt")

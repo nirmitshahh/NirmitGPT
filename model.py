@@ -74,7 +74,12 @@ class ChatModel(nn.Module):
         
         x = self.token_embed(idx) + self.pos_embed(pos)
         
-        mask = torch.tril(torch.ones(T, T, device=idx.device))
+        # cache mask to avoid recomputing
+        if not hasattr(self, '_cached_mask') or self._cached_mask.shape[0] < T:
+            mask = torch.tril(torch.ones(T, T, device=idx.device, dtype=torch.bool))
+            self._cached_mask = mask
+        else:
+            mask = self._cached_mask[:T, :T]
         
         for block in self.blocks:
             x = block(x, mask)

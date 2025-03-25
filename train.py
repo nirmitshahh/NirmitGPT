@@ -63,7 +63,7 @@ def main():
     
     dataloader = get_dataloader(texts, tokenizer, batch_size=2)
     
-    optimizer = AdamW(model.parameters(), lr=3e-4)
+    optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
     scheduler = CosineAnnealingLR(optimizer, T_max=5)
     
     train(model, dataloader, optimizer, scheduler, device, epochs=5, use_amp=True)

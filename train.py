@@ -8,30 +8,37 @@ from tokenizer import Tokenizer
 from data import get_dataloader
 import os
 
-def train(model, dataloader, optimizer, scheduler, device, epochs=10, save_every=5, use_amp=False):
+def train(model, dataloader, optimizer, scheduler, device, epochs=10, save_every=5, use_amp=False, accum_steps=1):
     model.train()
     scaler = GradScaler() if use_amp else None
     for epoch in range(epochs):
         total_loss = 0
+        optimizer.zero_grad()
         for batch_idx, (x, y) in enumerate(dataloader):
             x, y = x.to(device), y.to(device)
             
-            optimizer.zero_grad()
             if use_amp:
                 with autocast():
                     logits, loss = model(x, y)
+                loss = loss / accum_steps
                 scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-                scaler.step(optimizer)
-                scaler.update()
             else:
                 logits, loss = model(x, y)
+                loss = loss / accum_steps
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-                optimizer.step()
             
-            total_loss += loss.item()
+            total_loss += loss.item() * accum_steps
+            
+            if (batch_idx + 1) % accum_steps == 0:
+                if use_amp:
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    optimizer.step()
+                optimizer.zero_grad()
             
             if batch_idx % 100 == 0:
                 print(f"Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item():.4f}")

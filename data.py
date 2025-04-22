@@ -23,9 +23,9 @@ class ChatDataset(Dataset):
         y = torch.tensor(tokens[1:], dtype=torch.long)
         return x, y
 
-def get_dataloader(texts, tokenizer, batch_size=32, max_length=1024, shuffle=True):
+def get_dataloader(texts, tokenizer, batch_size=32, max_length=1024, shuffle=True, num_workers=0):
     dataset = ChatDataset(texts, tokenizer, max_length)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_fn, num_workers=num_workers, pin_memory=True)
 
 def collate_fn(batch):
     xs, ys = zip(*batch)

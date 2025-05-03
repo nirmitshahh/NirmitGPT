@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.optim import AdamW
+from torch.optim import AdamW, Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.cuda.amp import autocast, GradScaler
 from model import ChatModel
@@ -70,7 +70,8 @@ def main():
     
     dataloader = get_dataloader(texts, tokenizer, batch_size=2)
     
-    optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
+    # try Adam instead of AdamW
+    optimizer = Adam(model.parameters(), lr=1e-4)
     scheduler = CosineAnnealingLR(optimizer, T_max=5)
     
     train(model, dataloader, optimizer, scheduler, device, epochs=5, use_amp=True)

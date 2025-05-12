@@ -68,6 +68,17 @@ class ChatModel(nn.Module):
         self.ln_f = nn.LayerNorm(d_model)
         self.head = nn.Linear(d_model, vocab_size)
         
+        # init weights
+        self.apply(self._init_weights)
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        
     def forward(self, idx, targets=None):
         B, T = idx.shape
         pos = torch.arange(0, T, dtype=torch.long, device=idx.device)

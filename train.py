@@ -60,6 +60,12 @@ def main():
     vocab_size = tokenizer.vocab_size
     
     model = ChatModel(vocab_size=vocab_size).to(device)
+    # try compiling for speed
+    try:
+        model = torch.compile(model, mode="reduce-overhead")
+        print("Model compiled with torch.compile")
+    except:
+        print("torch.compile not available, skipping")
     
     # load data from file if exists, otherwise use dummy
     try:
